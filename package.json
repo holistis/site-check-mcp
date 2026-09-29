@@ -1,0 +1,28 @@
+{
+  "name": "site-check-mcp",
+  "version": "1.0.0",
+  "description": "One-off real-browser check of a single URL, over MCP. Paid per call via x402 (USDC on Base). No subscription, no setup.",
+  "main": "index.mjs",
+  "type": "module",
+  "license": "MIT",
+  "author": "Abdellah Ouadoudi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holistis/site-check-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "playwright",
+    "site-monitoring",
+    "x402",
+    "testing",
+    "qa"
+  ],
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "zod": "^4.6.5"
+  }
+}
