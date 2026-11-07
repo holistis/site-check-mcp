@@ -27,12 +27,17 @@ site-check-mcp if you just want to check one URL, right now, once.
 
 ## Security
 
-Every URL is checked against a denylist **before** any browser is launched
-and **before** any payment is required: non-`http(s)` schemes, localhost,
-and private/reserved IP ranges (including cloud metadata addresses like
-`169.254.169.254`) are rejected outright. The hostname's real, resolved IP
-addresses are checked, not just the text of the URL, so a DNS-rebinding
-trick does not bypass this.
+The service validates the URL before it visits the page. Without a payment
+attached you get the payment instructions first.
+
+This server only forwards your call. When you run it yourself behind a reverse
+proxy, set `TRUST_PROXY=1` so the rate limit counts each visitor separately,
+and only do that when exactly one proxy sits in front and appends the
+connecting address to `X-Forwarded-For` (nginx with
+`$proxy_add_x_forwarded_for` does). With `TRUST_PROXY=1` the server listens on
+`127.0.0.1` only, unless you set `HOST`.
+
+To report a security problem, see [SECURITY.md](SECURITY.md).
 
 ## Quick start (Claude Desktop / Claude Code)
 
