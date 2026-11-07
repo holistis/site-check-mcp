@@ -20,6 +20,7 @@ import { randomUUID } from 'node:crypto'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
+import { clientIp } from './client-ip.mjs'
 
 const PORT = Number(process.env.PORT ?? 8403)
 const UPSTREAM_HOST = 'api.mergefix.com'
@@ -69,7 +70,7 @@ function buildServer() {
         'console warnings and uncaught exceptions. Paid per call ($0.02 USDC on Base, x402). ' +
         'Call WITHOUT payment_signature first to receive the payment instructions (wallet address, exact amount). ' +
         'After paying, call again with the transaction hash as payment_signature to receive the actual report. ' +
-        'Private/internal addresses and non-http(s) URLs are always rejected, even without payment.',
+        'The URL is validated before the page is visited. Without a payment you receive the payment instructions first.',
       inputSchema: {
         url: z.string().describe('The URL to check, e.g. https://example.com'),
         payment_signature: z.string().optional().describe('Base USDC transaction hash (0x...) after paying $0.02, or an x402 X-PAYMENT payload. Omit to receive payment instructions.'),
@@ -106,15 +107,6 @@ setInterval(() => {
     if (now - bucket.windowStart >= RATE_LIMIT_WINDOW_MS) rateBuckets.delete(ip)
   }
 }, RATE_LIMIT_WINDOW_MS).unref()
-
-function clientIp(req) {
-  if (process.env.TRUST_PROXY === '1') {
-    const xff = req.headers['x-forwarded-for']
-    const first = Array.isArray(xff) ? xff[0] : xff?.split(',')[0]?.trim()
-    if (first) return first
-  }
-  return req.socket.remoteAddress ?? 'unknown'
-}
 
 async function readBoundedBody(req, maxBytes) {
   const chunks = []
@@ -167,6 +159,8 @@ function createApp() {
 }
 
 const httpServer = createServer(createApp())
-httpServer.listen(PORT, () => {
+// With TRUST_PROXY=1 the server is meant to sit behind one local reverse proxy, so it only listens on loopback unless HOST says otherwise.
+const HOST = process.env.HOST ?? (process.env.TRUST_PROXY === '1' ? '127.0.0.1' : undefined)
+httpServer.listen(PORT, HOST, () => {
   console.log(`site-check-mcp listening on :${PORT}, POST /mcp (tool: check_site)`)
 })
