@@ -4,6 +4,8 @@ One-off real-browser check of a single URL, over MCP. No subscription, no
 setup, no GitHub Actions to configure — pay per call, get a report back in
 seconds.
 
+[![holistis/site-check-mcp MCP server](https://glama.ai/mcp/servers/holistis/site-check-mcp/badges/score.svg)](https://glama.ai/mcp/servers/holistis/site-check-mcp)
+
 **Cost:** $0.02 USDC on Base (eip155:8453) via [x402](https://www.x402.org/).
 No API key, no signup.
 
@@ -63,6 +65,29 @@ The first call (no payment) returns the x402 payment instructions — the
 wallet address and exact amount to send. Send the USDC payment, then call
 again with the transaction hash as `payment_signature` to get the real
 report.
+
+## Run it yourself
+
+The server speaks two transports: streamable HTTP (`node index.mjs`, port 8403, `POST /mcp`) and stdio
+(`node index.mjs --stdio`), which is what local clients and server directories use.
+
+```
+git clone https://github.com/holistis/site-check-mcp
+cd site-check-mcp
+npm ci
+node index.mjs --stdio
+```
+
+Or with the Dockerfile, which starts the stdio transport:
+
+```
+docker build -t site-check-mcp .
+docker run -i --rm site-check-mcp
+```
+
+Either way the server only forwards `check_site` to the hosted service, and without a payment it answers with the
+payment instructions. `npm test` starts the stdio transport and checks that it lists the tool and writes nothing but
+protocol frames to stdout.
 
 ## HTTP API (no MCP client needed)
 

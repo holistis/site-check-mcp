@@ -1,24 +1,22 @@
 #!/usr/bin/env node
-// site-check-mcp.mjs — MCP-server (streamable HTTP) die het al-live, al-geteste
-// betaalde /api/site-check-endpoint op api.mergefix.com aan AI-agents aanbiedt als
-// één losstaand gereedschap: check_site. Puur een dunne doorgeefluik, GEEN eigen
-// betaal- of controlelogica hier — die staat al, bewezen, in x402-server.mjs.
-// Zelfde patroon als capacity-attest-http (tokenizen), hergebruikt.
+// site-check-mcp: an MCP server with one tool, check_site. It forwards the call unchanged to the
+// payment-guarded endpoint on api.mergefix.com and holds no payment or URL-checking logic of its own.
 //
-// DE 4 VERPLICHTE CHECKS (globale CLAUDE.md, publicatiepoort voor netwerk-code):
-// 1. Auth-check: geen auth nodig, dit endpoint verzint geen eigen bevoegdheden,
-//    het geeft letterlijk door wat het echte, betaal-bewakende endpoint teruggeeft.
-// 2. Data-check: url-parameter wordt NIET hier gevalideerd (dat gebeurt al, hard,
-//    in site-check.mjs op de echte server, met een SSRF-slot), dit bestand stuurt
-//    de invoer gewoon door zonder er zelf iets mee te doen.
-// 3. Exposure-check: geen geheimen in dit proces. Fouten van de upstream-aanroep
-//    worden kort samengevat teruggegeven, nooit de ruwe interne foutmelding.
-// 4. Rate-check: dezelfde in-memory per-IP-limiet als capacity-attest-http.
+// Two transports, one tool:
+//   node index.mjs           streamable HTTP on PORT (default 8403), POST /mcp
+//   node index.mjs --stdio   stdin and stdout, for local clients and for directories that start a server and ask it for its tools
+//
+// How the four checks apply to this file:
+// 1. Auth: none needed. The server invents no permissions; it returns what the payment-guarded endpoint returns.
+// 2. Input: the url parameter is passed on unchanged. The endpoint it is passed to validates it and has an SSRF guard.
+// 3. Exposure: no secrets in this process. Errors from the upstream call are summarised briefly, never the raw message.
+// 4. Rate: an in-memory per-IP limit on the HTTP transport. The stdio transport has one local caller.
 import { createServer, request as httpsRequestNode } from 'node:http'
 import https from 'node:https'
 import { randomUUID } from 'node:crypto'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { clientIp } from './client-ip.mjs'
 
@@ -158,9 +156,14 @@ function createApp() {
   }
 }
 
-const httpServer = createServer(createApp())
-// With TRUST_PROXY=1 the server is meant to sit behind one local reverse proxy, so it only listens on loopback unless HOST says otherwise.
-const HOST = process.env.HOST ?? (process.env.TRUST_PROXY === '1' ? '127.0.0.1' : undefined)
-httpServer.listen(PORT, HOST, () => {
-  console.log(`site-check-mcp listening on :${PORT}, POST /mcp (tool: check_site)`)
-})
+if (process.argv.includes('--stdio') || process.env.MCP_TRANSPORT === 'stdio') {
+  // Over stdio the only thing allowed on stdout is protocol frames, so nothing is logged to stdout here.
+  await buildServer().connect(new StdioServerTransport())
+} else {
+  const httpServer = createServer(createApp())
+  // With TRUST_PROXY=1 the server is meant to sit behind one local reverse proxy, so it only listens on loopback unless HOST says otherwise.
+  const HOST = process.env.HOST ?? (process.env.TRUST_PROXY === '1' ? '127.0.0.1' : undefined)
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`site-check-mcp listening on :${PORT}, POST /mcp (tool: check_site)`)
+  })
+}
