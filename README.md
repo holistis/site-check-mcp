@@ -4,7 +4,7 @@ One-off real-browser check of a single URL, over MCP. No subscription, no
 setup, no GitHub Actions to configure — pay per call, get a report back in
 seconds.
 
-[![holistis/site-check-mcp MCP server](https://glama.ai/mcp/servers/holistis/site-check-mcp/badges/score.svg)](https://glama.ai/mcp/servers/holistis/site-check-mcp)
+[![site-check-mcp MCP connector](https://glama.ai/mcp/connectors/org.duckdns.wazir-x402/site-check-mcp/badges/score.svg)](https://glama.ai/mcp/connectors/org.duckdns.wazir-x402/site-check-mcp)
 
 **Cost:** $0.02 USDC on Base (eip155:8453) via [x402](https://www.x402.org/).
 No API key, no signup.
